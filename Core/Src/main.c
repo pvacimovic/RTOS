@@ -19,7 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-#include "string.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -55,14 +54,19 @@ osThreadId_t GreenTaskHandle;
 const osThreadAttr_t GreenTask_attributes = {
   .name = "GreenTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for YellowTask */
 osThreadId_t YellowTaskHandle;
 const osThreadAttr_t YellowTask_attributes = {
   .name = "YellowTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for ToGreen */
+osMessageQueueId_t ToGreenHandle;
+const osMessageQueueAttr_t ToGreen_attributes = {
+  .name = "ToGreen"
 };
 /* USER CODE BEGIN PV */
 
@@ -132,6 +136,10 @@ int main(void)
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* creation of ToGreen */
+  ToGreenHandle = osMessageQueueNew (16, sizeof(uint16_t), &ToGreen_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -294,6 +302,13 @@ void display(char *message)
 	HAL_UART_Transmit(&huart2, (uint8_t*)message, strlen(message), HAL_MAX_DELAY);
 	//38400
 }
+void display_num(uint8_t num)
+{
+	char buf[10];
+	sprintf(buf, "%li \r\n", num);
+	HAL_UART_Transmit(&huart2, &buf, strlen(buf), HAL_MAX_DELAY);
+	//38400
+}
 
 /* USER CODE END 4 */
 
@@ -309,6 +324,7 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
 
 	char *m = "Default\r\n";
+	uint8_t x = 0;
 
 	// second option:
 	// char m[5] = {'H', 'i', '\r', '\n', '\0'};
@@ -317,8 +333,17 @@ void StartDefaultTask(void *argument)
   for(;;)
   {
 	  display(m);
-
 	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+
+	  display_num(x);
+
+	  osMessageQueuePut(ToGreenHandle, &x, 0, 200);
+
+	  if(++x>9)
+	  {
+		  x = 0;
+	  }
+
 	  osDelay(1000);
   }
   /* USER CODE END 5 */
@@ -336,14 +361,22 @@ void StartGreenTask(void *argument)
   /* USER CODE BEGIN StartGreenTask */
 
 	char *m = "Green\r\n";
+	uint8_t res = 0;
 
   /* Infinite loop */
   for(;;)
   {
 	  display(m);
 
-	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
-	  osDelay(1500);
+	  osMessageQueueGet(ToGreenHandle, &res, NULL, 1000);
+	  // wait forever if you want to block the task when there is no data in the queue
+
+	  if(res % 2 == 0)
+	  {
+		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
+	  }
+
+	  //osDelay(1000);
   }
   /* USER CODE END StartGreenTask */
 }
@@ -365,9 +398,9 @@ void StartYellowTask(void *argument)
   for(;;)
   {
 	  display(m);
-
 	  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
-	  osDelay(2000);
+
+	  osDelay(4000);
   }
   /* USER CODE END StartYellowTask */
 }

@@ -1,6 +1,7 @@
 #MicroXplorer Configuration settings - do not modify
 FREERTOS.FootprintOK=true
-FREERTOS.IPParameters=Tasks01,FootprintOK
+FREERTOS.IPParameters=Tasks01,FootprintOK,Queues01
+FREERTOS.Queues01=ToGreen,16,uint16_t,0,Dynamic,NULL,NULL
 FREERTOS.Tasks01=DefaultTask,24,128,StartDefaultTask,Default,NULL,Dynamic,NULL,NULL;GreenTask,8,128,StartGreenTask,Default,NULL,Dynamic,NULL,NULL;YellowTask,8,128,StartYellowTask,Default,NULL,Dynamic,NULL,NULL
 File.Version=6
 GPIO.groupedBy=Group By Peripherals
