@@ -54,19 +54,31 @@ osThreadId_t GreenTaskHandle;
 const osThreadAttr_t GreenTask_attributes = {
   .name = "GreenTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for YellowTask */
 osThreadId_t YellowTaskHandle;
 const osThreadAttr_t YellowTask_attributes = {
   .name = "YellowTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for Blue */
+osThreadId_t BlueHandle;
+const osThreadAttr_t Blue_attributes = {
+  .name = "Blue",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for ToGreen */
 osMessageQueueId_t ToGreenHandle;
 const osMessageQueueAttr_t ToGreen_attributes = {
   .name = "ToGreen"
+};
+/* Definitions for myBinarySem01 */
+osSemaphoreId_t myBinarySem01Handle;
+const osSemaphoreAttr_t myBinarySem01_attributes = {
+  .name = "myBinarySem01"
 };
 /* USER CODE BEGIN PV */
 
@@ -79,6 +91,7 @@ static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void *argument);
 void StartGreenTask(void *argument);
 void StartYellowTask(void *argument);
+void StartBlue(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -129,6 +142,10 @@ int main(void)
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
+  /* Create the semaphores(s) */
+  /* creation of myBinarySem01 */
+  myBinarySem01Handle = osSemaphoreNew(1, 1, &myBinarySem01_attributes);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
@@ -154,6 +171,9 @@ int main(void)
 
   /* creation of YellowTask */
   YellowTaskHandle = osThreadNew(StartYellowTask, NULL, &YellowTask_attributes);
+
+  /* creation of Blue */
+  BlueHandle = osThreadNew(StartBlue, NULL, &Blue_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -285,12 +305,22 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PB4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
   /*Configure GPIO pin : PB5 */
   GPIO_InitStruct.Pin = GPIO_PIN_5;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
@@ -397,12 +427,31 @@ void StartYellowTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
+	  osSemaphoreRelease(myBinarySem01Handle);
 	  display(m);
 	  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
 
 	  osDelay(4000);
   }
   /* USER CODE END StartYellowTask */
+}
+
+/* USER CODE BEGIN Header_StartBlue */
+/**
+* @brief Function implementing the Blue thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartBlue */
+void StartBlue(void *argument)
+{
+  /* USER CODE BEGIN StartBlue */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartBlue */
 }
 
 /**
