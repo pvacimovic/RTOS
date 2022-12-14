@@ -287,7 +287,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, LD2_Pin|GPIO_PIN_9, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, LD2_Pin|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
@@ -298,18 +298,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LD2_Pin PA9 */
-  GPIO_InitStruct.Pin = LD2_Pin|GPIO_PIN_9;
+  /*Configure GPIO pins : LD2_Pin PA8 PA9 */
+  GPIO_InitStruct.Pin = LD2_Pin|GPIO_PIN_8|GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  /*Configure GPIO pin : PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PB5 */
   GPIO_InitStruct.Pin = GPIO_PIN_5;
@@ -338,6 +338,22 @@ void display_num(uint8_t num)
 	sprintf(buf, "%li \r\n", num);
 	HAL_UART_Transmit(&huart2, &buf, strlen(buf), HAL_MAX_DELAY);
 	//38400
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if(GPIO_Pin == GPIO_PIN_10)
+	{
+		char *m = "Brown\r\n";
+		display(m);
+	}
+
+	if(GPIO_Pin == B1_Pin)
+	{
+		char *m = "Button\r\n";
+		display(m);
+		osSemaphoreRelease(myBinarySem01Handle);
+	}
 }
 
 /* USER CODE END 4 */
@@ -446,10 +462,18 @@ void StartYellowTask(void *argument)
 void StartBlue(void *argument)
 {
   /* USER CODE BEGIN StartBlue */
+
+	char *m = "Blue\r\n";
+
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+
+	osSemaphoreAcquire(myBinarySem01Handle, osWaitForever);
+
+	display(m);
+	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_8);
+
   }
   /* USER CODE END StartBlue */
 }
